@@ -5,6 +5,7 @@ module MadNLP
 
 import Pkg.TOML: parsefile
 import MathOptInterface
+using Quadmath
 import Libdl: dlopen, dlext, RTLD_DEEPBIND, RTLD_GLOBAL
 import Printf: @sprintf
 import LinearAlgebra: BLAS, Adjoint, Symmetric, mul!, ldiv!, norm, dot, diagind, normInf, transpose!
