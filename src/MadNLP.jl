@@ -21,7 +21,7 @@ import SolverCore: solve!, getStatus, AbstractOptimizationSolver, AbstractExecut
 const MOI = MathOptInterface
 const MOIU = MathOptInterface.Utilities
 
-export MadNLPSolver, MadNLPOptions, UmfpackSolver, LapackCPUSolver, madnlp, solve!
+export MadNLPSolver, MadNLPOptions, UmfpackSolver, LapackCPUSolver, JuliaLinearAlgebraSolver, madnlp, solve!
 
 # Version info
 version() = parsefile(joinpath(@__DIR__,"..","Project.toml"))["version"]

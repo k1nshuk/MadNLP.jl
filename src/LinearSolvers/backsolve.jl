@@ -39,6 +39,7 @@ function solve_refine!(
     solve_refine!(full(x), solver, full(b))
 end
 
+#=
 function solve_refine!(
     x::AbstractVector{T},
     solver::RichardsonIterator{T},
@@ -78,14 +79,88 @@ function solve_refine!(
             break
         end
 
-        solve!(solver.linear_solver, big_ε)
+        # @show solver.linear_solver
+        
+        # solve!(solver.linear_solver, big_ε)
+        big_fact = convert(Matrix{Float128}, solver.linear_solver.fact)
+        # big_kkt = convert(Matrix{Float128}, solver.kkt)
+
+        big_ε = big_fact \ big_ε
         axpy!(-one(Float128), big_ε, big_x)
         mul!(big_ε, solver.kkt, big_x)
+        @show typeof(big_ε)
         axpy!(-one(Float128), big_b, big_ε)
         norm_res = norm(big_ε, Inf)
+        solver.residual[:] = convert(Vector{Float64}, big_ε)
 
         residual_ratio_old = residual_ratio
         residual_ratio = norm_res / (one(Float128)+big_norm_b)
+    end
+
+    @debug(solver.logger, @sprintf(
+        "Iterative solver terminated with %4i refinement steps and residual = %6.2e",
+        iter, residual_ratio),
+    )
+
+    if residual_ratio < solver.acceptable_tol
+        return :Solved
+    else
+        return :Failed
+    end
+end
+=#
+
+function solve_refine!(
+    x::AbstractVector{T},
+    solver::RichardsonIterator{T},
+    b::AbstractVector{T},
+) where T
+    @debug(solver.logger, "Iterative solver initiated")
+
+    ε = solver.residual
+    norm_b = norm(b, Inf)
+
+    fill!(x, zero(T))
+    fill!(ε, zero(T))
+
+    ε = solver.residual
+    axpy!(-1, b, ε)
+    norm_res = norm(ε, Inf)
+    residual_ratio = norm_res / (one(T) + norm_b)
+
+    iter = 0
+    residual_ratio_old = Inf
+    noprogress = 0
+
+    big_b = convert(Vector{Float128}, b)
+
+    while true
+        mod(iter, 10)==0 &&
+            @debug(solver.logger,"iter ||res||")
+        @debug(solver.logger, @sprintf("%4i %6.2e", iter, residual_ratio))
+        iter += 1
+        if (iter > solver.max_iter) || (residual_ratio < solver.tol)
+            break
+        end
+
+        solve!(solver.linear_solver, ε)
+
+        big_ε = copy(convert(Vector{Float128}, ε))
+        big_x = copy(convert(Vector{Float128}, x))
+        
+        axpy!(-one(Float128), big_ε, big_x)
+        kkt_mat = Symmetric(solver.kkt.aug_com, :L)
+        big_kkt = copy(convert(Matrix{Float128}, kkt_mat))
+        mul!(big_ε, big_kkt, big_x)
+        axpy!(-one(Float128), big_b, big_ε)
+        big_norm_res = norm(big_ε, Inf)
+
+        solver.residual[:] = convert(Vector{Float64}, big_ε)
+        x[:] = convert(Vector{Float64}, big_x)
+        residual_ratio_old = residual_ratio
+        
+        # residual_ratio = norm_res / (one(T)+norm_b)
+        residual_ratio = big_norm_res / (one(Float128)+norm_b)
     end
 
     @debug(solver.logger, @sprintf(

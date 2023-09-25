@@ -140,6 +140,7 @@ include("backsolve.jl")
 
 # dense solvers
 include("lapack.jl")
+include("julia_linear_algebra.jl")
 
 # UMFPACK
 # N.B: interface depends on Julia version as the UMFPACK's
